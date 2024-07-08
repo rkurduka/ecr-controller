@@ -32,6 +32,8 @@ import (
 	acktags "github.com/aws-controllers-k8s/runtime/pkg/tags"
 	acktypes "github.com/aws-controllers-k8s/runtime/pkg/types"
 	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	svcsdkV2ecr "github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	svcsdk "github.com/aws/aws-sdk-go/service/ecr"
 	svcsdkapi "github.com/aws/aws-sdk-go/service/ecr/ecriface"
@@ -79,6 +81,12 @@ type resourceManager struct {
 	// sdk is a pointer to the AWS service API interface exposed by the
 	// aws-sdk-go/services/{alias}/{alias}iface package.
 	sdkapi svcsdkapi.ECRAPI
+
+	// AWS Config for AWS SDK V2
+	config aws.Config
+
+	// clientV2 is the AWS SDK V2 Client object used to communicate with the backend AWS Service API
+	clientV2 *svcsdkV2ecr.Client
 }
 
 // concreteResource returns a pointer to a resource from the supplied
@@ -316,6 +324,8 @@ func newResourceManager(
 	sess *session.Session,
 	id ackv1alpha1.AWSAccountID,
 	region ackv1alpha1.AWSRegion,
+	config aws.Config,
+	clientV2 *svcsdkV2ecr.Client,
 ) (*resourceManager, error) {
 	return &resourceManager{
 		cfg:          cfg,
@@ -326,6 +336,8 @@ func newResourceManager(
 		awsRegion:    region,
 		sess:         sess,
 		sdkapi:       svcsdk.New(sess),
+		config:       config,
+		clientV2:     clientV2,
 	}, nil
 }
 

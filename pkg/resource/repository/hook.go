@@ -8,7 +8,11 @@ import (
 	ackerr "github.com/aws-controllers-k8s/runtime/pkg/errors"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	ackutil "github.com/aws-controllers-k8s/runtime/pkg/util"
-	svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+
+	//svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/ecr"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	svcapitypes "github.com/aws-controllers-k8s/ecr-controller/apis/v1alpha1"
@@ -86,16 +90,38 @@ func (rm *resourceManager) getRepositoryPolicy(
 	defer exit(err)
 
 	var getRepositoryPolicyResponse *svcsdk.GetRepositoryPolicyOutput
-	getRepositoryPolicyResponse, err = rm.sdkapi.GetRepositoryPolicyWithContext(
+
+	// This is for AWS-SDK-GO-V2
+	// getRepositoryPolicyResponse, err = rm.sdkapi.GetRepositoryPolicyWithContext(
+	// 	ctx,
+	// 	&svcsdk.GetRepositoryPolicyInput{
+	// 		RepositoryName: &repositoryName,
+	// 		RegistryId:     &registryID,
+	// 	},
+	// )
+
+	getRepositoryPolicyResponse, err = rm.clientV2.GetRepositoryPolicy(
 		ctx,
 		&svcsdk.GetRepositoryPolicyInput{
 			RepositoryName: &repositoryName,
 			RegistryId:     &registryID,
 		},
 	)
+
 	rm.metrics.RecordAPICall("GET", "GetRepositoryPolicy", err)
+	// This is for AWS-SDK-GO-V2
+	// if err != nil {
+
+	// 	if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != svcsdk.ErrCodeRepositoryPolicyNotFoundException {
+	// 		return nil, err
+	// 	}
+	// 	// do not return an error if the repository policy is not found. Simply return an empty policy.
+	// 	return nil, nil
+	// }
+
 	if err != nil {
-		if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != svcsdk.ErrCodeRepositoryPolicyNotFoundException {
+
+		if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != "RepositoryNotFoundException" {
 			return nil, err
 		}
 		// do not return an error if the repository policy is not found. Simply return an empty policy.
@@ -116,16 +142,37 @@ func (rm *resourceManager) getRepositoryLifecyclePolicy(
 	defer exit(err)
 
 	var getLifecyclePolicyResponse *svcsdk.GetLifecyclePolicyOutput
-	getLifecyclePolicyResponse, err = rm.sdkapi.GetLifecyclePolicyWithContext(
+	// This is for AWS-SDK-GO-V2
+	// getLifecyclePolicyResponse, err = rm.sdkapi.GetLifecyclePolicyWithContext(
+	// 	ctx,
+	// 	&svcsdk.GetLifecyclePolicyInput{
+	// 		RepositoryName: &repositoryName,
+	// 		RegistryId:     &registryID,
+	// 	},
+	// )
+
+	getLifecyclePolicyResponse, err = rm.clientV2.GetLifecyclePolicy(
 		ctx,
 		&svcsdk.GetLifecyclePolicyInput{
 			RepositoryName: &repositoryName,
 			RegistryId:     &registryID,
 		},
 	)
+
 	rm.metrics.RecordAPICall("GET", "GetLifecyclePolicy", err)
+	// This is for AWS-SDK-GO-V2
+	// if err != nil {
+	// 	if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != svcsdk.ErrCodeLifecyclePolicyNotFoundException {
+	// 		return nil, err
+	// 	}
+	// 	// do not return an error if the lifecycle policy is not found. Simply return an empty lifecycle policy.
+	// 	return nil, nil
+	// }
+
 	if err != nil {
-		if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != svcsdk.ErrCodeLifecyclePolicyNotFoundException {
+
+		notFoundException := svcsdktypes.LifecyclePolicyNotFoundException{}
+		if awsErr, ok := ackerr.AWSError(err); !ok || awsErr.Code() != notFoundException.Error() {
 			return nil, err
 		}
 		// do not return an error if the lifecycle policy is not found. Simply return an empty lifecycle policy.
@@ -136,12 +183,20 @@ func (rm *resourceManager) getRepositoryLifecyclePolicy(
 
 // getRepositoryTags retrieves a resource list of tags.
 func (rm *resourceManager) getRepositoryTags(ctx context.Context, resourceARN string) ([]*svcapitypes.Tag, error) {
-	listTagsForResourceResponse, err := rm.sdkapi.ListTagsForResourceWithContext(
+	// listTagsForResourceResponse, err := rm.sdkapi.ListTagsForResourceWithContext(
+	// 	ctx,
+	// 	&svcsdk.ListTagsForResourceInput{
+	// 		ResourceArn: &resourceARN,
+	// 	},
+	// )
+	// This is for AWS-SDK-GO-V2
+	listTagsForResourceResponse, err := rm.clientV2.ListTagsForResource(
 		ctx,
 		&svcsdk.ListTagsForResourceInput{
 			ResourceArn: &resourceARN,
 		},
 	)
+
 	rm.metrics.RecordAPICall("GET", "ListTagsForResource", err)
 	if err != nil {
 		return nil, err
@@ -209,11 +264,12 @@ mainLoop:
 	return added, updated, removed
 }
 
+// This is for AWS-SDK-GO-V2
 // svcTagsFromResourceTags transforms a *svcapitypes.Tag array to a *svcsdk.Tag array.
-func sdkTagsFromResourceTags(rTags []*svcapitypes.Tag) []*svcsdk.Tag {
-	tags := make([]*svcsdk.Tag, len(rTags))
+func sdkTagsFromResourceTags(rTags []*svcapitypes.Tag) []svcsdktypes.Tag {
+	tags := make([]svcsdktypes.Tag, len(rTags))
 	for i := range rTags {
-		tags[i] = &svcsdk.Tag{
+		tags[i] = svcsdktypes.Tag{
 			Key:   rTags[i].Key,
 			Value: rTags[i].Value,
 		}

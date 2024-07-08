@@ -29,7 +29,9 @@ import (
 	ackrequeue "github.com/aws-controllers-k8s/runtime/pkg/requeue"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	//svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/ecr"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -41,7 +43,7 @@ var (
 	_ = &metav1.Time{}
 	_ = strings.ToLower("")
 	_ = &aws.JSONValue{}
-	_ = &svcsdk.ECR{}
+	//_ = &svcsdk.ECR{}
 	_ = &svcapitypes.Repository{}
 	_ = ackv1alpha1.AWSAccountID("")
 	_ = &ackerr.NotFound
@@ -72,8 +74,11 @@ func (rm *resourceManager) sdkFind(
 	if err != nil {
 		return nil, err
 	}
+
 	var resp *svcsdk.DescribeRepositoriesOutput
-	resp, err = rm.sdkapi.DescribeRepositoriesWithContext(ctx, input)
+	//resp, err = rm.sdkapi.DescribeRepositoriesWithContext(ctx, input)
+
+	resp, err = rm.clientV2.DescribeRepositories(ctx, input)
 	rm.metrics.RecordAPICall("READ_MANY", "DescribeRepositories", err)
 	if err != nil {
 		if awsErr, ok := ackerr.AWSError(err); ok && awsErr.Code() == "RepositoryNotFoundException" {
@@ -88,15 +93,10 @@ func (rm *resourceManager) sdkFind(
 
 	found := false
 	for _, elem := range resp.Repositories {
-		if elem.CreatedAt != nil {
-			ko.Status.CreatedAt = &metav1.Time{*elem.CreatedAt}
-		} else {
-			ko.Status.CreatedAt = nil
-		}
 		if elem.EncryptionConfiguration != nil {
 			f1 := &svcapitypes.EncryptionConfiguration{}
-			if elem.EncryptionConfiguration.EncryptionType != nil {
-				f1.EncryptionType = elem.EncryptionConfiguration.EncryptionType
+			if elem.EncryptionConfiguration.EncryptionType != "" {
+				f1.EncryptionType = (*string)(&elem.EncryptionConfiguration.EncryptionType)
 			}
 			if elem.EncryptionConfiguration.KmsKey != nil {
 				f1.KMSKey = elem.EncryptionConfiguration.KmsKey
@@ -107,15 +107,15 @@ func (rm *resourceManager) sdkFind(
 		}
 		if elem.ImageScanningConfiguration != nil {
 			f2 := &svcapitypes.ImageScanningConfiguration{}
-			if elem.ImageScanningConfiguration.ScanOnPush != nil {
-				f2.ScanOnPush = elem.ImageScanningConfiguration.ScanOnPush
+			if elem.ImageScanningConfiguration.ScanOnPush {
+				f2.ScanOnPush = &elem.ImageScanningConfiguration.ScanOnPush
 			}
 			ko.Spec.ImageScanningConfiguration = f2
 		} else {
 			ko.Spec.ImageScanningConfiguration = nil
 		}
-		if elem.ImageTagMutability != nil {
-			ko.Spec.ImageTagMutability = elem.ImageTagMutability
+		if elem.ImageTagMutability != "" {
+			ko.Spec.ImageTagMutability = (*string)(&elem.ImageTagMutability)
 		} else {
 			ko.Spec.ImageTagMutability = nil
 		}
@@ -140,11 +140,6 @@ func (rm *resourceManager) sdkFind(
 			ko.Spec.Name = elem.RepositoryName
 		} else {
 			ko.Spec.Name = nil
-		}
-		if elem.RepositoryUri != nil {
-			ko.Status.RepositoryURI = elem.RepositoryUri
-		} else {
-			ko.Status.RepositoryURI = nil
 		}
 		found = true
 		break
@@ -178,12 +173,12 @@ func (rm *resourceManager) newListRequestPayload(
 	res := &svcsdk.DescribeRepositoriesInput{}
 
 	if r.ko.Spec.RegistryID != nil {
-		res.SetRegistryId(*r.ko.Spec.RegistryID)
+		res.RegistryId = r.ko.Spec.RegistryID
 	}
 	if r.ko.Spec.Name != nil {
-		f3 := []*string{}
-		f3 = append(f3, r.ko.Spec.Name)
-		res.SetRepositoryNames(f3)
+		f3 := []string{}
+		f3 = append(f3, *r.ko.Spec.Name)
+		res.RepositoryNames = f3
 	}
 
 	return res, nil
@@ -201,6 +196,8 @@ func (rm *resourceManager) sdkCreate(
 	defer func() {
 		exit(err)
 	}()
+
+	
 	input, err := rm.newCreateRequestPayload(ctx, desired)
 	if err != nil {
 		return nil, err
@@ -208,7 +205,9 @@ func (rm *resourceManager) sdkCreate(
 
 	var resp *svcsdk.CreateRepositoryOutput
 	_ = resp
-	resp, err = rm.sdkapi.CreateRepositoryWithContext(ctx, input)
+	//resp, err = rm.sdkapi.CreateRepositoryWithContext(ctx, input)
+
+	resp, err = rm.clientV2.CreateRepository(ctx, input)
 	rm.metrics.RecordAPICall("CREATE", "CreateRepository", err)
 	if err != nil {
 		return nil, err
@@ -217,58 +216,46 @@ func (rm *resourceManager) sdkCreate(
 	// the original Kubernetes object we passed to the function
 	ko := desired.ko.DeepCopy()
 
-	if resp.Repository.CreatedAt != nil {
-		ko.Status.CreatedAt = &metav1.Time{*resp.Repository.CreatedAt}
-	} else {
-		ko.Status.CreatedAt = nil
-	}
-	if resp.Repository.EncryptionConfiguration != nil {
-		f1 := &svcapitypes.EncryptionConfiguration{}
-		if resp.Repository.EncryptionConfiguration.EncryptionType != nil {
-			f1.EncryptionType = resp.Repository.EncryptionConfiguration.EncryptionType
+	if resp.Repository != nil {
+		f0 := &svcapitypes.Repository_SDK{}
+		if resp.Repository.CreatedAt != nil {
+			f0.CreatedAt = &metav1.Time{*resp.Repository.CreatedAt}
 		}
-		if resp.Repository.EncryptionConfiguration.KmsKey != nil {
-			f1.KMSKey = resp.Repository.EncryptionConfiguration.KmsKey
+		if resp.Repository.EncryptionConfiguration != nil {
+			f0f1 := &svcapitypes.EncryptionConfiguration{}
+			if resp.Repository.EncryptionConfiguration.EncryptionType != "" {
+				f0f1.EncryptionType = (*string)(&resp.Repository.EncryptionConfiguration.EncryptionType)
+			}
+			if resp.Repository.EncryptionConfiguration.KmsKey != nil {
+				f0f1.KMSKey = resp.Repository.EncryptionConfiguration.KmsKey
+			}
+			f0.EncryptionConfiguration = f0f1
 		}
-		ko.Spec.EncryptionConfiguration = f1
-	} else {
-		ko.Spec.EncryptionConfiguration = nil
-	}
-	if resp.Repository.ImageScanningConfiguration != nil {
-		f2 := &svcapitypes.ImageScanningConfiguration{}
-		if resp.Repository.ImageScanningConfiguration.ScanOnPush != nil {
-			f2.ScanOnPush = resp.Repository.ImageScanningConfiguration.ScanOnPush
+		if resp.Repository.ImageScanningConfiguration != nil {
+			f0f2 := &svcapitypes.ImageScanningConfiguration{}
+			if resp.Repository.ImageScanningConfiguration.ScanOnPush {
+				f0f2.ScanOnPush = &resp.Repository.ImageScanningConfiguration.ScanOnPush
+			}
+			f0.ImageScanningConfiguration = f0f2
 		}
-		ko.Spec.ImageScanningConfiguration = f2
+		if resp.Repository.ImageTagMutability != "" {
+			f0.ImageTagMutability = (*string)(&resp.Repository.ImageTagMutability)
+		}
+		if resp.Repository.RegistryId != nil {
+			f0.RegistryID = resp.Repository.RegistryId
+		}
+		if resp.Repository.RepositoryArn != nil {
+			f0.RepositoryARN = resp.Repository.RepositoryArn
+		}
+		if resp.Repository.RepositoryName != nil {
+			f0.RepositoryName = resp.Repository.RepositoryName
+		}
+		if resp.Repository.RepositoryUri != nil {
+			f0.RepositoryURI = resp.Repository.RepositoryUri
+		}
+		ko.Status.Repository = f0
 	} else {
-		ko.Spec.ImageScanningConfiguration = nil
-	}
-	if resp.Repository.ImageTagMutability != nil {
-		ko.Spec.ImageTagMutability = resp.Repository.ImageTagMutability
-	} else {
-		ko.Spec.ImageTagMutability = nil
-	}
-	if resp.Repository.RegistryId != nil {
-		ko.Spec.RegistryID = resp.Repository.RegistryId
-	} else {
-		ko.Spec.RegistryID = nil
-	}
-	if ko.Status.ACKResourceMetadata == nil {
-		ko.Status.ACKResourceMetadata = &ackv1alpha1.ResourceMetadata{}
-	}
-	if resp.Repository.RepositoryArn != nil {
-		arn := ackv1alpha1.AWSResourceName(*resp.Repository.RepositoryArn)
-		ko.Status.ACKResourceMetadata.ARN = &arn
-	}
-	if resp.Repository.RepositoryName != nil {
-		ko.Spec.Name = resp.Repository.RepositoryName
-	} else {
-		ko.Spec.Name = nil
-	}
-	if resp.Repository.RepositoryUri != nil {
-		ko.Status.RepositoryURI = resp.Repository.RepositoryUri
-	} else {
-		ko.Status.RepositoryURI = nil
+		ko.Status.Repository = nil
 	}
 
 	rm.setStatusDefaults(ko)
@@ -296,44 +283,44 @@ func (rm *resourceManager) newCreateRequestPayload(
 	res := &svcsdk.CreateRepositoryInput{}
 
 	if r.ko.Spec.EncryptionConfiguration != nil {
-		f0 := &svcsdk.EncryptionConfiguration{}
+		f0 := &svcsdktypes.EncryptionConfiguration{}
 		if r.ko.Spec.EncryptionConfiguration.EncryptionType != nil {
-			f0.SetEncryptionType(*r.ko.Spec.EncryptionConfiguration.EncryptionType)
+			f0.EncryptionType = svcsdktypes.EncryptionType(*r.ko.Spec.EncryptionConfiguration.EncryptionType)
 		}
 		if r.ko.Spec.EncryptionConfiguration.KMSKey != nil {
-			f0.SetKmsKey(*r.ko.Spec.EncryptionConfiguration.KMSKey)
+			f0.KmsKey = r.ko.Spec.EncryptionConfiguration.KMSKey
 		}
-		res.SetEncryptionConfiguration(f0)
+		res.EncryptionConfiguration = f0
 	}
 	if r.ko.Spec.ImageScanningConfiguration != nil {
-		f1 := &svcsdk.ImageScanningConfiguration{}
+		f1 := &svcsdktypes.ImageScanningConfiguration{}
 		if r.ko.Spec.ImageScanningConfiguration.ScanOnPush != nil {
-			f1.SetScanOnPush(*r.ko.Spec.ImageScanningConfiguration.ScanOnPush)
+			f1.ScanOnPush = *r.ko.Spec.ImageScanningConfiguration.ScanOnPush
 		}
-		res.SetImageScanningConfiguration(f1)
+		res.ImageScanningConfiguration = f1
 	}
 	if r.ko.Spec.ImageTagMutability != nil {
-		res.SetImageTagMutability(*r.ko.Spec.ImageTagMutability)
+		res.ImageTagMutability = svcsdktypes.ImageTagMutability(*r.ko.Spec.ImageTagMutability)
 	}
 	if r.ko.Spec.RegistryID != nil {
-		res.SetRegistryId(*r.ko.Spec.RegistryID)
+		res.RegistryId = r.ko.Spec.RegistryID
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetRepositoryName(*r.ko.Spec.Name)
+		res.RepositoryName = r.ko.Spec.Name
 	}
 	if r.ko.Spec.Tags != nil {
-		f5 := []*svcsdk.Tag{}
+		f5 := []svcsdktypes.Tag{}
 		for _, f5iter := range r.ko.Spec.Tags {
-			f5elem := &svcsdk.Tag{}
+			f5elem := svcsdktypes.Tag{}
 			if f5iter.Key != nil {
-				f5elem.SetKey(*f5iter.Key)
+				f5elem.Key = f5iter.Key
 			}
 			if f5iter.Value != nil {
-				f5elem.SetValue(*f5iter.Value)
+				f5elem.Value = f5iter.Value
 			}
 			f5 = append(f5, f5elem)
 		}
-		res.SetTags(f5)
+		res.Tags = f5
 	}
 
 	return res, nil
@@ -364,10 +351,14 @@ func (rm *resourceManager) sdkDelete(
 	if err != nil {
 		return nil, err
 	}
-	input.SetForce(GetDeleteForce(&r.ko.ObjectMeta))
+	// input.SetForce(GetDeleteForce(&r.ko.ObjectMeta))
+	// This is for AWS-SDK-GO-V2
+	input.Force = GetDeleteForce(&r.ko.ObjectMeta)
 	var resp *svcsdk.DeleteRepositoryOutput
 	_ = resp
-	resp, err = rm.sdkapi.DeleteRepositoryWithContext(ctx, input)
+	//resp, err = rm.sdkapi.DeleteRepositoryWithContext(ctx, input)
+	resp, err = rm.clientV2.DeleteRepository(ctx, input)
+
 	rm.metrics.RecordAPICall("DELETE", "DeleteRepository", err)
 	return nil, err
 }
@@ -380,10 +371,10 @@ func (rm *resourceManager) newDeleteRequestPayload(
 	res := &svcsdk.DeleteRepositoryInput{}
 
 	if r.ko.Spec.RegistryID != nil {
-		res.SetRegistryId(*r.ko.Spec.RegistryID)
+		res.RegistryId = r.ko.Spec.RegistryID
 	}
 	if r.ko.Spec.Name != nil {
-		res.SetRepositoryName(*r.ko.Spec.Name)
+		res.RepositoryName = r.ko.Spec.Name
 	}
 
 	return res, nil

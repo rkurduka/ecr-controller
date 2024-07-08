@@ -17,17 +17,19 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/aws"
-	svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	//svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/ecr"
+	svcsdktypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 
 	ackcompare "github.com/aws-controllers-k8s/runtime/pkg/compare"
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 )
 
 var (
-	defaultImageScanningConfig = svcsdk.ImageScanningConfiguration{
-		ScanOnPush: aws.Bool(false),
+	defaultImageScanningConfig = svcsdktypes.ImageScanningConfiguration{
+		ScanOnPush: false,
 	}
-	defaultImageTagMutability = svcsdk.ImageTagMutabilityMutable
+	defaultImageTagMutability = svcsdktypes.ImageTagMutabilityMutable
 )
 
 // customUpdateRepository implements specialized logic for handling Repository
@@ -105,14 +107,18 @@ func (rm *resourceManager) updateImageScanningConfiguration(
 	if dspec.ImageScanningConfiguration == nil {
 		// There isn't any "reset" behaviour and the image scanning
 		// configuration field should always be set...
-		input.SetImageScanningConfiguration(&defaultImageScanningConfig)
+		//input.SetImageScanningConfiguration(&defaultImageScanningConfig)
+
+		input.ImageScanningConfiguration = &defaultImageScanningConfig
 	} else {
-		isc := svcsdk.ImageScanningConfiguration{
-			ScanOnPush: dspec.ImageScanningConfiguration.ScanOnPush,
+		isc := svcsdktypes.ImageScanningConfiguration{
+			ScanOnPush: *dspec.ImageScanningConfiguration.ScanOnPush,
 		}
-		input.SetImageScanningConfiguration(&isc)
+		//input.SetImageScanningConfiguration(&isc)
+
+		input.ImageScanningConfiguration = &isc
 	}
-	_, err = rm.sdkapi.PutImageScanningConfigurationWithContext(ctx, input)
+	_, err = rm.clientV2.PutImageScanningConfiguration(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "PutImageScanningConfiguration", err)
 	if err != nil {
 		return nil, err
@@ -138,11 +144,14 @@ func (rm *resourceManager) updateImageTagMutability(
 	if dspec.ImageTagMutability == nil {
 		// There isn't any "reset" behaviour and the image scanning
 		// configuration field should always be set...
-		input.SetImageTagMutability(defaultImageTagMutability)
+		//input.SetImageTagMutability(defaultImageTagMutability)
+		input.ImageTagMutability = defaultImageTagMutability
+
 	} else {
-		input.SetImageTagMutability(*dspec.ImageTagMutability)
+		//input.SetImageTagMutability(*dspec.ImageTagMutability)
+		input.ImageTagMutability = svcsdktypes.ImageTagMutability(*dspec.ImageTagMutability)
 	}
-	_, err = rm.sdkapi.PutImageTagMutabilityWithContext(ctx, input)
+	_, err = rm.clientV2.PutImageTagMutability(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "PutImageTagMutability", err)
 	if err != nil {
 		return nil, err
@@ -173,7 +182,7 @@ func (rm *resourceManager) updateLifecyclePolicy(
 		LifecyclePolicyText: dspec.LifecyclePolicy,
 	}
 
-	_, err = rm.sdkapi.PutLifecyclePolicyWithContext(ctx, input)
+	_, err = rm.clientV2.PutLifecyclePolicy(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "PutLifecyclePolicy", err)
 	if err != nil {
 		return nil, err
@@ -198,7 +207,7 @@ func (rm *resourceManager) deleteLifecyclePolicy(
 		RegistryId:     dspec.RegistryID,
 	}
 
-	_, err = rm.sdkapi.DeleteLifecyclePolicyWithContext(ctx, input)
+	_, err = rm.clientV2.DeleteLifecyclePolicy(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteLifecyclePolicy", err)
 	if err != nil {
 		return nil, err
@@ -221,14 +230,20 @@ func (rm *resourceManager) syncRepositoryTags(
 	// Tags to create
 	added = append(added, updated...)
 
+	var removed_tags []string
+	for _, tag := range removed {
+		removed_tags = append(removed_tags, *tag)
+	}
+
 	if len(removed) > 0 {
-		_, err = rm.sdkapi.UntagResourceWithContext(
+		_, err = rm.clientV2.UntagResource(
 			ctx,
 			&svcsdk.UntagResourceInput{
 				ResourceArn: (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
-				TagKeys:     removed,
+				TagKeys:     removed_tags,
 			},
 		)
+
 		rm.metrics.RecordAPICall("UPDATE", "UntagResource", err)
 		if err != nil {
 			return err
@@ -236,7 +251,7 @@ func (rm *resourceManager) syncRepositoryTags(
 	}
 
 	if len(added) > 0 {
-		_, err = rm.sdkapi.TagResourceWithContext(
+		_, err = rm.clientV2.TagResource(
 			ctx,
 			&svcsdk.TagResourceInput{
 				ResourceArn: (*string)(latest.ko.Status.ACKResourceMetadata.ARN),
@@ -273,7 +288,7 @@ func (rm *resourceManager) updateRepositoryPolicy(
 		PolicyText:     dspec.Policy,
 	}
 
-	_, err = rm.sdkapi.SetRepositoryPolicyWithContext(ctx, input)
+	_, err = rm.clientV2.SetRepositoryPolicy(ctx, input)
 	rm.metrics.RecordAPICall("UPDATE", "SetRepositoryPolicy", err)
 	if err != nil {
 		return nil, err
@@ -297,7 +312,7 @@ func (rm *resourceManager) deleteRepositoryPolicy(
 		RegistryId:     dspec.RegistryID,
 	}
 
-	_, err = rm.sdkapi.DeleteRepositoryPolicyWithContext(ctx, input)
+	_, err = rm.clientV2.DeleteRepositoryPolicy(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteRepositoryPolicy", err)
 	if err != nil {
 		return nil, err

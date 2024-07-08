@@ -1,9 +1,9 @@
 apiVersion: ecr.services.k8s.aws/v1alpha1
 kind: Repository
 metadata:
-  name: $REPOSITORY_NAME
+  name: myrepowithv2
 spec:
-  name: $REPOSITORY_NAME
+  name: myrepowithv2
   imageScanningConfiguration:
     scanOnPush: false
   imageTagMutability: MUTABLE

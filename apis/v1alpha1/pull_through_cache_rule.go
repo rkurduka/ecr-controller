@@ -22,20 +22,13 @@ import (
 
 // PullThroughCacheRuleSpec defines the desired state of PullThroughCacheRule.
 //
-// The details of a pull through cache rule.
-type PullThroughCacheRuleSpec struct {
 
-	// The repository name prefix to use when caching images from the source registry.
-	// +kubebuilder:validation:Required
-	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix"`
-	// The Amazon Web Services account ID associated with the registry to create
-	// the pull through cache rule for. If you do not specify a registry, the default
-	// registry is assumed.
-	RegistryID *string `json:"registryID,omitempty"`
-	// The registry URL of the upstream public registry to use as the source for
-	// the pull through cache rule.
-	// +kubebuilder:validation:Required
-	UpstreamRegistryURL *string `json:"upstreamRegistryURL"`
+type PullThroughCacheRuleSpec struct {
+	CredentialARN       *string `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	UpstreamRegistry    *string `json:"upstreamRegistry,omitempty"`
+	UpstreamRegistryURL *string `json:"upstreamRegistryURL,omitempty"`
 }
 
 // PullThroughCacheRuleStatus defines the observed state of PullThroughCacheRule
@@ -51,8 +44,6 @@ type PullThroughCacheRuleStatus struct {
 	// resource
 	// +kubebuilder:validation:Optional
 	Conditions []*ackv1alpha1.Condition `json:"conditions"`
-	// The date and time, in JavaScript date format, when the pull through cache
-	// rule was created.
 	// +kubebuilder:validation:Optional
 	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
 }

@@ -17,128 +17,379 @@ package v1alpha1
 
 import (
 	ackv1alpha1 "github.com/aws-controllers-k8s/runtime/apis/core/v1alpha1"
-	"github.com/aws/aws-sdk-go/aws"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Hack to avoid import errors during build...
 var (
 	_ = &metav1.Time{}
-	_ = &aws.JSONValue{}
+	//_ = &aws.JSONValue{}
 	_ = ackv1alpha1.AWSAccountID("")
 )
 
-// The image details of the Amazon ECR container image.
 type AWSECRContainerImageDetails struct {
 	Registry       *string `json:"registry,omitempty"`
 	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// The encryption configuration for the repository. This determines how the
-// contents of your repository are encrypted at rest.
-//
-// By default, when no encryption configuration is set or the AES256 encryption
-// type is used, Amazon ECR uses server-side encryption with Amazon S3-managed
-// encryption keys which encrypts your data at rest using an AES-256 encryption
-// algorithm. This does not require any action on your part.
-//
-// For more control over the encryption of the contents of your repository,
-// you can use server-side encryption with Key Management Service key stored
-// in Key Management Service (KMS) to encrypt your images. For more information,
-// see Amazon ECR encryption at rest (https://docs.aws.amazon.com/AmazonECR/latest/userguide/encryption-at-rest.html)
-// in the Amazon Elastic Container Registry User Guide.
-type EncryptionConfiguration struct {
-	EncryptionType *string `json:"encryptionType,omitempty"`
-	KMSKey         *string `json:"kmsKey,omitempty"`
-}
-
-// The details of an enhanced image scan. This is returned when enhanced scanning
-// is enabled for your private registry.
-type EnhancedImageScanFinding struct {
-	AWSAccountID *string `json:"awsAccountID,omitempty"`
-}
-
-// An object representing an Amazon ECR image.
-type Image struct {
+type BatchCheckLayerAvailabilityRequest struct {
 	RegistryID     *string `json:"registryID,omitempty"`
 	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// An object that describes an image returned by a DescribeImages operation.
-type ImageDetail struct {
+type BatchDeleteImageRequest struct {
 	RegistryID     *string `json:"registryID,omitempty"`
 	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// The status of the replication process for an image.
-type ImageReplicationStatus struct {
-	RegistryID *string `json:"registryID,omitempty"`
+type BatchGetImageRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// Contains information about an image scan finding.
-type ImageScanFinding struct {
-	URI *string `json:"uri,omitempty"`
+type CompleteLayerUploadRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// The image scanning configuration for a repository.
-type ImageScanningConfiguration struct {
-	ScanOnPush *bool `json:"scanOnPush,omitempty"`
+type CompleteLayerUploadResponse struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// Information about a package vulnerability finding.
-type PackageVulnerabilityDetails struct {
-	SourceURL *string `json:"sourceURL,omitempty"`
+type CreatePullThroughCacheRuleRequest struct {
+	CredentialARN       *string `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	UpstreamRegistry    *string `json:"upstreamRegistry,omitempty"`
+	UpstreamRegistryURL *string `json:"upstreamRegistryURL,omitempty"`
 }
 
-// The details of a pull through cache rule.
-type PullThroughCacheRule_SDK struct {
+type CreatePullThroughCacheRuleResponse struct {
 	CreatedAt           *metav1.Time `json:"createdAt,omitempty"`
+	CredentialARN       *string      `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string      `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string      `json:"registryID,omitempty"`
+	UpstreamRegistry    *string      `json:"upstreamRegistry,omitempty"`
+	UpstreamRegistryURL *string      `json:"upstreamRegistryURL,omitempty"`
+}
+
+type CreateRepositoryRequest struct {
+	EncryptionConfiguration    *EncryptionConfiguration    `json:"encryptionConfiguration,omitempty"`
+	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
+	ImageTagMutability         *string                     `json:"imageTagMutability,omitempty"`
+	RegistryID                 *string                     `json:"registryID,omitempty"`
+	RepositoryName             *string                     `json:"repositoryName,omitempty"`
+	Tags                       []*Tag                      `json:"tags,omitempty"`
+}
+
+type CreateRepositoryResponse struct {
+	Repository *Repository_SDK `json:"repository,omitempty"`
+}
+
+type DeleteLifecyclePolicyRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DeleteLifecyclePolicyResponse struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type DeletePullThroughCacheRuleRequest struct {
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+}
+
+type DeletePullThroughCacheRuleResponse struct {
+	CreatedAt           *metav1.Time `json:"createdAt,omitempty"`
+	CredentialARN       *string      `json:"credentialARN,omitempty"`
 	ECRRepositoryPrefix *string      `json:"ecrRepositoryPrefix,omitempty"`
 	RegistryID          *string      `json:"registryID,omitempty"`
 	UpstreamRegistryURL *string      `json:"upstreamRegistryURL,omitempty"`
 }
 
-// Details about the recommended course of action to remediate the finding.
+type DeleteRegistryPolicyResponse struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
+type DeleteRepositoryPolicyRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DeleteRepositoryPolicyResponse struct {
+	PolicyText     *string `json:"policyText,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DeleteRepositoryRequest struct {
+	Force          *bool   `json:"force,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DeleteRepositoryResponse struct {
+	Repository *Repository_SDK `json:"repository,omitempty"`
+}
+
+type DescribeImageReplicationStatusRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DescribeImageReplicationStatusResponse struct {
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DescribeImageScanFindingsRequest struct {
+	MaxResults     *int64  `json:"maxResults,omitempty"`
+	NextToken      *string `json:"nextToken,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DescribeImageScanFindingsResponse struct {
+	NextToken      *string `json:"nextToken,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DescribeImagesRequest struct {
+	MaxResults     *int64  `json:"maxResults,omitempty"`
+	NextToken      *string `json:"nextToken,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type DescribeImagesResponse struct {
+	NextToken *string `json:"nextToken,omitempty"`
+}
+
+type DescribePullThroughCacheRulesRequest struct {
+	ECRRepositoryPrefixes []*string `json:"ecrRepositoryPrefixes,omitempty"`
+	MaxResults            *int64    `json:"maxResults,omitempty"`
+	NextToken             *string   `json:"nextToken,omitempty"`
+	RegistryID            *string   `json:"registryID,omitempty"`
+}
+
+type DescribePullThroughCacheRulesResponse struct {
+	NextToken             *string                     `json:"nextToken,omitempty"`
+	PullThroughCacheRules []*PullThroughCacheRule_SDK `json:"pullThroughCacheRules,omitempty"`
+}
+
+type DescribeRegistryResponse struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
+type DescribeRepositoriesRequest struct {
+	MaxResults      *int64    `json:"maxResults,omitempty"`
+	NextToken       *string   `json:"nextToken,omitempty"`
+	RegistryID      *string   `json:"registryID,omitempty"`
+	RepositoryNames []*string `json:"repositoryNames,omitempty"`
+}
+
+type DescribeRepositoriesResponse struct {
+	NextToken    *string           `json:"nextToken,omitempty"`
+	Repositories []*Repository_SDK `json:"repositories,omitempty"`
+}
+
+type EncryptionConfiguration struct {
+	EncryptionType *string `json:"encryptionType,omitempty"`
+	KMSKey         *string `json:"kmsKey,omitempty"`
+}
+
+type EnhancedImageScanFinding struct {
+	AWSAccountID *string `json:"awsAccountID,omitempty"`
+}
+
+type GetDownloadURLForLayerRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type GetDownloadURLForLayerResponse struct {
+	DownloadURL *string `json:"downloadURL,omitempty"`
+}
+
+type GetLifecyclePolicyPreviewRequest struct {
+	NextToken      *string `json:"nextToken,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type GetLifecyclePolicyPreviewResponse struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	NextToken           *string `json:"nextToken,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type GetLifecyclePolicyRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type GetLifecyclePolicyResponse struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type GetRegistryPolicyResponse struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
+type GetRegistryScanningConfigurationResponse struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
+type GetRepositoryPolicyRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type GetRepositoryPolicyResponse struct {
+	PolicyText     *string `json:"policyText,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type Image struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type ImageDetail struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type ImageReplicationStatus struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
+type ImageScanFinding struct {
+	URI *string `json:"uri,omitempty"`
+}
+
+type ImageScanningConfiguration struct {
+	ScanOnPush *bool `json:"scanOnPush,omitempty"`
+}
+
+type InitiateLayerUploadRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type InvalidLayerPartException struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type ListImagesRequest struct {
+	MaxResults     *int64  `json:"maxResults,omitempty"`
+	NextToken      *string `json:"nextToken,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type ListImagesResponse struct {
+	NextToken *string `json:"nextToken,omitempty"`
+}
+
+type ListTagsForResourceRequest struct {
+	ResourceARN *string `json:"resourceARN,omitempty"`
+}
+
+type ListTagsForResourceResponse struct {
+	Tags []*Tag `json:"tags,omitempty"`
+}
+
+type PackageVulnerabilityDetails struct {
+	SourceURL *string `json:"sourceURL,omitempty"`
+}
+
+type PullThroughCacheRule_SDK struct {
+	CreatedAt           *metav1.Time `json:"createdAt,omitempty"`
+	CredentialARN       *string      `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string      `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string      `json:"registryID,omitempty"`
+	UpdatedAt           *metav1.Time `json:"updatedAt,omitempty"`
+	UpstreamRegistry    *string      `json:"upstreamRegistry,omitempty"`
+	UpstreamRegistryURL *string      `json:"upstreamRegistryURL,omitempty"`
+}
+
+type PutImageRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type PutImageScanningConfigurationRequest struct {
+	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
+	RegistryID                 *string                     `json:"registryID,omitempty"`
+	RepositoryName             *string                     `json:"repositoryName,omitempty"`
+}
+
+type PutImageScanningConfigurationResponse struct {
+	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
+	RegistryID                 *string                     `json:"registryID,omitempty"`
+	RepositoryName             *string                     `json:"repositoryName,omitempty"`
+}
+
+type PutImageTagMutabilityRequest struct {
+	ImageTagMutability *string `json:"imageTagMutability,omitempty"`
+	RegistryID         *string `json:"registryID,omitempty"`
+	RepositoryName     *string `json:"repositoryName,omitempty"`
+}
+
+type PutImageTagMutabilityResponse struct {
+	ImageTagMutability *string `json:"imageTagMutability,omitempty"`
+	RegistryID         *string `json:"registryID,omitempty"`
+	RepositoryName     *string `json:"repositoryName,omitempty"`
+}
+
+type PutLifecyclePolicyRequest struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type PutLifecyclePolicyResponse struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type PutRegistryPolicyResponse struct {
+	RegistryID *string `json:"registryID,omitempty"`
+}
+
 type Recommendation struct {
 	URL *string `json:"url,omitempty"`
 }
 
-// An array of objects representing the destination for a replication rule.
 type ReplicationDestination struct {
 	RegistryID *string `json:"registryID,omitempty"`
 }
 
-// The details of the scanning configuration for a repository.
 type RepositoryScanningConfiguration struct {
 	RepositoryARN  *string `json:"repositoryARN,omitempty"`
 	RepositoryName *string `json:"repositoryName,omitempty"`
 	ScanOnPush     *bool   `json:"scanOnPush,omitempty"`
 }
 
-// The details about any failures associated with the scanning configuration
-// of a repository.
 type RepositoryScanningConfigurationFailure struct {
 	RepositoryName *string `json:"repositoryName,omitempty"`
 }
 
-// An object representing a repository.
 type Repository_SDK struct {
-	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
-	// The encryption configuration for the repository. This determines how the
-	// contents of your repository are encrypted at rest.
-	//
-	// By default, when no encryption configuration is set or the AES256 encryption
-	// type is used, Amazon ECR uses server-side encryption with Amazon S3-managed
-	// encryption keys which encrypts your data at rest using an AES-256 encryption
-	// algorithm. This does not require any action on your part.
-	//
-	// For more control over the encryption of the contents of your repository,
-	// you can use server-side encryption with Key Management Service key stored
-	// in Key Management Service (KMS) to encrypt your images. For more information,
-	// see Amazon ECR encryption at rest (https://docs.aws.amazon.com/AmazonECR/latest/userguide/encryption-at-rest.html)
-	// in the Amazon Elastic Container Registry User Guide.
-	EncryptionConfiguration *EncryptionConfiguration `json:"encryptionConfiguration,omitempty"`
-	// The image scanning configuration for a repository.
+	CreatedAt                  *metav1.Time                `json:"createdAt,omitempty"`
+	EncryptionConfiguration    *EncryptionConfiguration    `json:"encryptionConfiguration,omitempty"`
 	ImageScanningConfiguration *ImageScanningConfiguration `json:"imageScanningConfiguration,omitempty"`
 	ImageTagMutability         *string                     `json:"imageTagMutability,omitempty"`
 	RegistryID                 *string                     `json:"registryID,omitempty"`
@@ -147,11 +398,86 @@ type Repository_SDK struct {
 	RepositoryURI              *string                     `json:"repositoryURI,omitempty"`
 }
 
-// The metadata to apply to a resource to help you categorize and organize them.
-// Each tag consists of a key and a value, both of which you define. Tag keys
-// can have a maximum character length of 128 characters, and tag values can
-// have a maximum length of 256 characters.
+type SetRepositoryPolicyRequest struct {
+	Force          *bool   `json:"force,omitempty"`
+	PolicyText     *string `json:"policyText,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type SetRepositoryPolicyResponse struct {
+	PolicyText     *string `json:"policyText,omitempty"`
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type StartImageScanRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type StartImageScanResponse struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type StartLifecyclePolicyPreviewRequest struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
+type StartLifecyclePolicyPreviewResponse struct {
+	LifecyclePolicyText *string `json:"lifecyclePolicyText,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	RepositoryName      *string `json:"repositoryName,omitempty"`
+}
+
 type Tag struct {
 	Key   *string `json:"key,omitempty"`
 	Value *string `json:"value,omitempty"`
+}
+
+type TagResourceRequest struct {
+	ResourceARN *string `json:"resourceARN,omitempty"`
+	Tags        []*Tag  `json:"tags,omitempty"`
+}
+
+type UntagResourceRequest struct {
+	ResourceARN *string `json:"resourceARN,omitempty"`
+}
+
+type UpdatePullThroughCacheRuleRequest struct {
+	CredentialARN       *string `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+}
+
+type UpdatePullThroughCacheRuleResponse struct {
+	CredentialARN       *string      `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string      `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string      `json:"registryID,omitempty"`
+	UpdatedAt           *metav1.Time `json:"updatedAt,omitempty"`
+}
+
+type UploadLayerPartRequest struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type UploadLayerPartResponse struct {
+	RegistryID     *string `json:"registryID,omitempty"`
+	RepositoryName *string `json:"repositoryName,omitempty"`
+}
+
+type ValidatePullThroughCacheRuleRequest struct {
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+}
+
+type ValidatePullThroughCacheRuleResponse struct {
+	CredentialARN       *string `json:"credentialARN,omitempty"`
+	ECRRepositoryPrefix *string `json:"ecrRepositoryPrefix,omitempty"`
+	RegistryID          *string `json:"registryID,omitempty"`
+	UpstreamRegistryURL *string `json:"upstreamRegistryURL,omitempty"`
 }

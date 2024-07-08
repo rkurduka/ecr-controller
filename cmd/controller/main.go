@@ -35,9 +35,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	ctrlrtwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	svctypes "github.com/aws-controllers-k8s/ecr-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/ecr-controller/pkg/resource"
-	svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	//svcsdk "github.com/aws/aws-sdk-go/service/ecr"
+	svctypes "github.com/aws-controllers-k8s/ecr-controller/apis/v1alpha1"
+	svcsdk "github.com/aws/aws-sdk-go-v2/service/ecr"
 
 	_ "github.com/aws-controllers-k8s/ecr-controller/pkg/resource/pull_through_cache_rule"
 	_ "github.com/aws-controllers-k8s/ecr-controller/pkg/resource/repository"
@@ -46,9 +47,10 @@ import (
 )
 
 var (
-	awsServiceAPIGroup    = "ecr.services.k8s.aws"
-	awsServiceAlias       = "ecr"
-	awsServiceEndpointsID = svcsdk.EndpointsID
+	awsServiceAPIGroup = "ecr.services.k8s.aws"
+	awsServiceAlias    = "ecr"
+	//awsServiceEndpointsID   = svcsdk.EndpointsID
+	awsServiceEndpointsID = svcsdk.ServiceID
 	scheme                = runtime.NewScheme()
 	setupLog              = ctrlrt.Log.WithName("setup")
 )
